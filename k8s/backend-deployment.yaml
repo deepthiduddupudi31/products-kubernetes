@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productkub-backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: productkub-backend
+
+  template:
+    metadata:
+      labels:
+        app: productkub-backend
+      annotations:
+        kubernetes.io/change-cause: "Rolling update test v2"
+
+    spec:
+      containers:
+        - name: productkub-backend
+          image: kubcontainer.azurecr.io/productkub-backend:latest
+	  imagePullPolicy: Always
+
+          ports:
+            - containerPort: 5000
+
+          envFrom:
+            - secretRef:
+                name: productkub-backend-secret
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5

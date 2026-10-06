@@ -1,0 +1,63 @@
+name: Deploy Backend to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ACR_NAME: kubcontainer
+  ACR_LOGIN_SERVER: kubcontainer.azurecr.io
+  IMAGE_NAME: productkub-backend
+  AKS_NAME: productkub-aks
+  RESOURCE_GROUP: kubdeploy
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            ./backend
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.AKS_NAME }} \
+            --overwrite-existing
+
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/backend-service.yaml
+          kubectl apply -f k8s/backend-ingress.yaml
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/productkub-backend \
+            productkub-backend=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Check rollout
+        run: |
+          kubectl rollout status deployment/productkub-backend
