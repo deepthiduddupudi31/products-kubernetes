@@ -14,14 +14,12 @@ spec:
     metadata:
       labels:
         app: productkub-backend
-      annotations:
-        kubernetes.io/change-cause: "Rolling update test v2"
 
     spec:
       containers:
         - name: productkub-backend
           image: kubcontainer.azurecr.io/productkub-backend:latest
-	  imagePullPolicy: Always
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 5000
