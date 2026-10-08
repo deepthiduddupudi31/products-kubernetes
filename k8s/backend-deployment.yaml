@@ -16,6 +16,8 @@ spec:
         app: productkub-backend
 
     spec:
+      serviceAccountName: productkub-backend-sa
+
       containers:
         - name: productkub-backend
           image: kubcontainer.azurecr.io/productkub-backend:latest
